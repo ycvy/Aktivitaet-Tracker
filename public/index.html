@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aktivitäten Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Aktivitäten Tracker</h1>
+    <form id="aktivitaetForm">
+        <input type="text" id="beschreibung" placeholder="Aktivität beschreiben" required>
+        <input type="datetime-local" id="startzeit" required>
+        <input type="datetime-local" id="endzeit" required>
+        <button type="submit">Hinzufügen</button>
+    </form>
+
+    <h2>Daten anzeigen für Zeitraum</h2>
+    <form id="zeitraumForm">
+        <input type="datetime-local" id="zeitraumStart" required>
+        <input type="datetime-local" id="zeitraumEnd" required>
+        <button type="submit">Daten anzeigen</button>
+    </form>
+
+    <h2>Aktivitäten</h2>
+    <ul id="aktivitaetenListe"></ul>
+
+    <button id="showChartButton">Diagramm anzeigen</button>
+
+    <script>
+        const aktivitaetForm = document.getElementById('aktivitaetForm');
+        const zeitraumForm = document.getElementById('zeitraumForm');
+        const aktivitaetenListe = document.getElementById('aktivitaetenListe');
+        let chart;
+
+        aktivitaetForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const beschreibung = document.getElementById('beschreibung').value;
+            const startzeit = document.getElementById('startzeit').value;
+            const endzeit = document.getElementById('endzeit').value;
+
+            try {
+                const response = await fetch('/aktivitaet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ beschreibung, startzeit, endzeit }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error);
+                }
+
+                // Eingabefelder zurücksetzen
+                document.getElementById('beschreibung').value = '';
+                document.getElementById('startzeit').value = '';
+                document.getElementById('endzeit').value = '';
+
+                // Aktivitäten neu laden
+                loadAktivitaeten();
+            } catch (error) {
+                alert(error.message); // Fehlermeldung anzeigen
+            }
+        });
+
+        zeitraumForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const start = document.getElementById('zeitraumStart').value;
+            const end = document.getElementById('zeitraumEnd').value;
+            loadChart(start, end);
+        });
+
+        document.getElementById('showChartButton').onclick = () => {
+            const start = document.getElementById('zeitraumStart').value;
+            const end = document.getElementById('zeitraumEnd').value;
+            window.open(`chart.html?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`, '_blank');
+        };
+
+        async function loadAktivitaeten() {
+            const response = await fetch('/aktivitaeten');
+            const aktivitaeten = await response.json();
+            aktivitaetenListe.innerHTML = ''; // Liste zurücksetzen
+
+            aktivitaeten.forEach(a => {
+                const li = document.createElement('li');
+                li.textContent = `${a.beschreibung} (Dauer: ${a.dauer / 60} Minuten)`;
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Löschen';
+                deleteButton.onclick = async () => {
+                    await fetch(`/aktivitaet/${a.id}`, { method: 'DELETE' });
+                    loadAktivitaeten(); // Liste nach dem Löschen aktualisieren
+                };
+                li.appendChild(deleteButton);
+                aktivitaetenListe.appendChild(li);
+            });
+        }
+
+        // Initiale Aktivitätsliste laden
+        loadAktivitaeten();
+    </script>
+</body>
+</html>

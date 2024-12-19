@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aktivitäten Diagramm</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Aktivitäten Diagramm</h1>
+    <canvas id="aktivitaetenChart"></canvas>
+    <button id="backButton">Zurück</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const ctx = document.getElementById('aktivitaetenChart').getContext('2d');
+            let chart;
+
+            async function loadChart(start, end) {
+                const response = await fetch(`/aktivitaeten?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+                const aktivitaeten = await response.json();
+
+                const labels = aktivitaeten.map(a => a.beschreibung);
+                const data = aktivitaeten.map(a => a.dauer / 60); // Dauer in Minuten
+
+                if (chart) {
+                    chart.destroy();
+                }
+
+                chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Dauer der Aktivitäten (Minuten)',
+                            data: data,
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Dauer (Minuten)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Parameter aus der URL abrufen
+            const urlParams = new URLSearchParams(window.location.search);
+            const start = urlParams.get('start');
+            const end = urlParams.get('end');
+
+            // Diagramm laden
+            loadChart(start, end);
+
+            // Zurück-Button
+            document.getElementById('backButton').onclick = () => {
+                window.location.href = 'index.html'; // Zurück zur Hauptseite
+            };
+        });
+    </script>
+</body>
+</html>
